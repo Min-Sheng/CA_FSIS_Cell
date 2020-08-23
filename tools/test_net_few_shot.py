@@ -82,26 +82,8 @@ def parse_args():
                     help='k shot query',
                     default=1, type=int)
     parser.add_argument(
-        '--fssun', help='Apply the few-shot spatially unification network',
+        '--deform_conv', help='Apply deform conv',
         action='store_true')
-    parser.add_argument(
-    '--fssan', help='Apply the few-shot spatially alignment network',
-    action='store_true')
-    parser.add_argument(
-    '--deform_conv', help='Apply deform conv',
-    action='store_true')
-    parser.add_argument(
-        '--deform_conv_v2', help='Apply deform conv version 2',
-        action='store_true')
-    parser.add_argument(
-    '--deform_3party', help='Apply deform conv (3 party)',
-    action='store_true')
-    parser.add_argument(
-        '--deform_roi_pool', help='Apply deform roi pooling',
-        action='store_true')
-    parser.add_argument(
-    '--short', help='Short training steps',
-    action='store_true')
     parser.add_argument(
         '--close_co_atten', help='Close co-attention',
         action='store_true')
@@ -138,10 +120,7 @@ def main():
     if args.close_fpn:
         args.cfg_file = "configs/few_shot/e2e_mask_rcnn_R-50-C4_1x_{}.yaml".format(args.group)
     else:
-        if args.short:
-            args.cfg_file = "configs/few_shot/e2e_mask_rcnn_R-50-FPN_1x_{}_short.yaml".format(args.group)
-        else:
-            args.cfg_file = "configs/few_shot/e2e_mask_rcnn_R-50-FPN_1x_{}.yaml".format(args.group)
+        args.cfg_file = "configs/few_shot/e2e_mask_rcnn_R-50-FPN_1x_{}.yaml".format(args.group)
     
     if args.cfg_file is not None:
         merge_cfg_from_file(args.cfg_file)
@@ -161,26 +140,8 @@ def main():
         else:
             cfg.FAST_RCNN.ROI_BOX_HEAD = 'torchResNet.ResNet_roi_conv5_head'
             cfg.MRCNN.ROI_MASK_HEAD = 'mask_rcnn_heads.mask_rcnn_fcn_head_v0upshare'
-    
-    if args.fssun:
-        cfg.FSSUN = True
-    if args.fssan:
-        cfg.FSSAN = True
     if args.deform_conv:
         cfg.MODEL.USE_DEFORM = True
-        if args.deform_3party:
-            cfg.MODEL.USE_DEFORM_3PARTY = True
-        else:
-            if args.deform_roi_pool:
-                cfg.FAST_RCNN.ROI_XFORM_METHOD = 'DeformRoIPoolPack'
-                cfg.MRCNN.ROI_XFORM_METHOD = 'DeformRoIPoolPack'
-    
-    if args.deform_conv_v2:
-        cfg.MODEL.USE_DEFORM = True
-        cfg.MODEL.USE_DEFORM_v2 = True
-        if args.deform_roi_pool:
-                cfg.FAST_RCNN.ROI_XFORM_METHOD = 'ModulatedDeformRoIPoolPack'
-                cfg.MRCNN.ROI_XFORM_METHOD = 'ModulatedDeformRoIPoolPack'
 
     if args.dataset == "fss_cell":
         cfg.TEST.DATASETS = ('fss_cell_test',)

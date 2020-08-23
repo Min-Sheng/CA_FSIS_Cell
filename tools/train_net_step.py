@@ -30,7 +30,6 @@ from utils.logging import setup_logging
 from utils.timer import Timer
 from utils.training_stats import TrainingStats
 from utils.logging import log_stats
-from utils.gaussian_kernel_generate import Gaussain_kernel_generate
 
 # Set up logging and load config options
 logger = setup_logging(__name__)
@@ -123,53 +122,13 @@ def parse_args():
                     default=1, type=int)
 
     parser.add_argument(
-        '--spatially_regularized', help='Apply the spatially regularized loss',
-        action='store_true')
-
-    parser.add_argument(
-        '--fssun', help='Apply the few-shot spatially unification network',
-        action='store_true')
-
-    parser.add_argument(
-        '--fssan', help='Apply the few-shot spatially alignment network',
-        action='store_true')
-
-    parser.add_argument(
-        '--dann', help='Apply domain adversarial training of neural networks',
-        action='store_true')
-
-    parser.add_argument(
-        '--dann_more', help='Apply large weight domain adversarial training of neural networks',
-        action='store_true')
-
-    parser.add_argument(
-        '--deform_3party', help='Apply deform conv (3 party)',
-        action='store_true')
-
-    parser.add_argument(
-        '--deform_roi_pool', help='Apply deform roi pooling',
-        action='store_true')
-
-    parser.add_argument(
         '--deform_conv', help='Apply deform conv',
-        action='store_true')
-
-    parser.add_argument(
-        '--deform_conv_v2', help='Apply deform conv version 2',
         action='store_true')
 
     parser.add_argument(
         '--random_seed',
         help='Set the random seed.',
         default=3, type=int)
-
-    parser.add_argument(
-        '--unfreeze_bn', help='Unfreeze all BN in backbone',
-        action='store_true')
-
-    parser.add_argument(
-        '--short', help='Short training steps',
-        action='store_true')
 
     parser.add_argument(
         '--close_co_atten', help='Close co-attention',
@@ -242,11 +201,7 @@ def main():
         args.cfg_file = "configs/few_shot/e2e_mask_rcnn_R-50-C4_1x_{}.yaml".format(args.group)
         cfg.OUTPUT_DIR = 'Outputs_wo_fpn'
     else:
-        if args.short:
-            args.cfg_file = "configs/few_shot/e2e_mask_rcnn_R-50-FPN_1x_{}_short.yaml".format(args.group)
-            cfg.OUTPUT_DIR = "Outputs_short"
-        else:
-            args.cfg_file = "configs/few_shot/e2e_mask_rcnn_R-50-FPN_1x_{}.yaml".format(args.group)
+        args.cfg_file = "configs/few_shot/e2e_mask_rcnn_R-50-FPN_1x_{}.yaml".format(args.group)
         
     cfg_from_file(args.cfg_file)
     if args.set_cfgs is not None:
@@ -287,40 +242,8 @@ def main():
     if args.output_dir is not None:
         cfg.OUTPUT_DIR = args.output_dir
 
-    if args.spatially_regularized:
-        cfg.TRAIN.RPN_SPATIALLY_REGULARIZED = True
-        # pre-calculated Gaussian weights 
-        cfg.TRAIN.RPN_GAUSSIAN_WEIGHTS, cfg.TRAIN.RPN_GAUSSIAN_WEIGHTS_NORMALIZED_VALUE = Gaussain_kernel_generate(cfg.TRAIN.RPN_GAUSSIAN_KERNEL_SIZE)
-    if args.fssun:
-        cfg.FSSUN = True
-    if args.fssan:
-        cfg.FSSAN = True
-    if args.unfreeze_bn:
-        cfg.TRAIN.FREEZE_BN = False
-    if args.dann:
-        cfg.TRAIN.DOMAIN_ADAPT_IM = True
-        cfg.TRAIN.DOMAIN_ADAPT_ROI = True
-        cfg.TRAIN.DOMAIN_ADAPT_CST = True
-        if args.dann_more:
-            cfg.TRAIN.DOMAIN_ADAPT_IM_WEIGHT = 1.0
-            cfg.TRAIN.DOMAIN_ADAPT_ROI_WEIGHT = 1.0
-            cfg.TRAIN.DOMAIN_ADAPT_CST_WEIGHT = 1.0
-            cfg.TRAIN.DOMAIN_ADAPT_DYNAMIC_ALPHA = False
     if args.deform_conv:
         cfg.MODEL.USE_DEFORM = True
-        if args.deform_3party:
-            cfg.MODEL.USE_DEFORM_3PARTY = True
-        else:
-            if args.deform_roi_pool:
-                cfg.FAST_RCNN.ROI_XFORM_METHOD = 'DeformRoIPoolPack'
-                cfg.MRCNN.ROI_XFORM_METHOD = 'DeformRoIPoolPack'
-    
-    if args.deform_conv_v2:
-        cfg.MODEL.USE_DEFORM = True
-        cfg.MODEL.USE_DEFORM_v2 = True
-        if args.deform_roi_pool:
-                cfg.FAST_RCNN.ROI_XFORM_METHOD = 'ModulatedDeformRoIPoolPack'
-                cfg.MRCNN.ROI_XFORM_METHOD = 'ModulatedDeformRoIPoolPack'
 
     ### Adaptively adjust some configs ###
     original_batch_size = cfg.NUM_GPUS * cfg.TRAIN.IMS_PER_BATCH
@@ -495,7 +418,7 @@ def main():
 
     lr = optimizer.param_groups[0]['lr']  # lr of non-bias parameters, for commmand line outputs.
 
-    maskRCNN = mynn.DataParallel(maskRCNN, cpu_keywords=['im_info', 'roidb', 'dann_alpha'],
+    maskRCNN = mynn.DataParallel(maskRCNN, cpu_keywords=['im_info', 'roidb'],
                                  minibatch=True)
 
     ### Training Setups ###
@@ -540,12 +463,6 @@ def main():
         logger.info('Training starts !')
         step = args.start_step
         for step in range(args.start_step, cfg.SOLVER.MAX_ITER):
-
-            if cfg.TRAIN.DOMAIN_ADAPT_DYNAMIC_ALPHA:
-                p = step / cfg.SOLVER.MAX_ITER
-                dann_alpha = ((2./(1.+np.exp(-10 * p))) - 1.) * (-1)
-            else:
-                dann_alpha = -0.1
 
             # Warm up
             if step < cfg.SOLVER.WARM_UP_ITERS:
@@ -595,7 +512,6 @@ def main():
                     if key == 'query':
                         input_data[key] = [list(map(Variable, q)) for q in input_data[key]]
                         
-                input_data['dann_alpha'] = [dann_alpha]
                 with torch.autograd.detect_anomaly():
                     net_outputs = maskRCNN(**input_data)
                     training_stats.UpdateIterStats(net_outputs, inner_iter)

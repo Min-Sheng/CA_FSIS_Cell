@@ -13,7 +13,6 @@ from core.config import cfg
 #from model.roi_crop.functions.roi_crop import RoICropFunction
 #from modeling.roi_xfrom.roi_align.functions.roi_align import RoIAlignFunction
 from model.roi_layers import ROIAlign, ROIPool
-from mmcv.ops import DeformRoIPoolPack, ModulatedDeformRoIPoolPack
 import modeling.rpn_heads as rpn_heads
 import modeling.fast_rcnn_heads as fast_rcnn_heads
 import modeling.mask_rcnn_heads as mask_rcnn_heads
@@ -23,9 +22,6 @@ import utils.net as net_utils
 import utils.resnet_weights_helper as resnet_utils
 
 import modeling.matching as matching
-#import modeling.attention as attention
-import modeling.stn as stn
-import modeling.domain_adversarial as da
 
 logger = logging.getLogger(__name__)
 
@@ -83,11 +79,6 @@ class Generalized_RCNN(nn.Module):
         # For cache
         self.mapping_to_detectron = None
         self.orphans_in_detectron = None
-
-        if cfg.FSSUN:
-            self.fssun_net = stn.FSSUN(in_channels=3, kernel_size=3)
-        if cfg.FSSAN:
-            self.fssan_net = stn.FSSAN(in_channels=512, kernel_size=3)
 
         # Backbone for feature extraction
         self.Conv_Body = get_func(cfg.MODEL.CONV_BODY)()
@@ -174,14 +165,6 @@ class Generalized_RCNN(nn.Module):
             if len(cat_list)==1:
                 cat_list = list(folds[cat_list[0]])
 
-        # Domain Discriminator Branch
-        if cfg.TRAIN.DOMAIN_ADAPT_IM:
-            self.DiscriminatorImage_Head = da.domain_discriminator_im(256, len(cat_list))
-            #self.DiscriminatorImage_Head = da.domain_discriminator_im(256, 1)
-        if cfg.TRAIN.DOMAIN_ADAPT_ROI:
-            self.DiscriminatorRoi_Head = da.domain_discriminator_roi(256, self.roi_feature_transform, self.Conv_Body.spatial_scale, len(cat_list))
-            #self.DiscriminatorRoi_Head = da.domain_discriminator_roi(256, self.roi_feature_transform, self.Conv_Body.spatial_scale, 1)
-
     def _init_modules(self):
         if cfg.MODEL.LOAD_IMAGENET_PRETRAINED_WEIGHTS:
             #resnet_utils.load_pretrained_imagenet_weights(self)
@@ -195,14 +178,14 @@ class Generalized_RCNN(nn.Module):
             for p in self.Conv_Body.parameters():
                 p.requires_grad = False
 
-    def forward(self, data, query, im_info, query_type=1, domain_label=0, dann_alpha=0, roidb=None, **rpn_kwargs):
+    def forward(self, data, query, im_info, query_type=1, roidb=None, **rpn_kwargs):
         if cfg.PYTORCH_VERSION_LESS_THAN_040:
-            return self._forward(data, query, im_info, query_type, domain_label, dann_alpha, roidb, **rpn_kwargs)
+            return self._forward(data, query, im_info, query_type, roidb, **rpn_kwargs)
         else:
             with torch.set_grad_enabled(self.training):
-                return self._forward(data, query, im_info, query_type, domain_label, dann_alpha, roidb, **rpn_kwargs)
+                return self._forward(data, query, im_info, query_type, roidb, **rpn_kwargs)
 
-    def _forward(self, data, query, im_info, query_type, domain_label, dann_alpha, roidb=None, **rpn_kwargs):
+    def _forward(self, data, query, im_info, query_type, roidb=None, **rpn_kwargs):
 
         #query_type = query_type.item()
 
@@ -220,13 +203,7 @@ class Generalized_RCNN(nn.Module):
         query_conv = []
         shot = len(query)
         for i in range(shot):
-            if cfg.FSSUN:
-                #print(query[i].shape) #[N * C * 128 * 128]
-                transformed_query = self.fssun_net(query[i])
-                #print(transformed_query.shape) #[N * C * 128 * 128]
-                query_conv.append(self.Conv_Body(transformed_query))
-            else:
-                query_conv.append(self.Conv_Body(query[i]))
+            query_conv.append(self.Conv_Body(query[i]))
         
         def pooling(feats, method='avg', dim = 0):
             feats = torch.stack(feats)
@@ -396,19 +373,6 @@ class Generalized_RCNN(nn.Module):
                         kps_pred, rpn_ret['keypoint_locations_int32'], rpn_ret['keypoint_weights'],
                         rpn_ret['keypoint_loss_normalizer'])
                 return_dict['losses']['loss_kps'] = loss_keypoints
-            if cfg.TRAIN.DOMAIN_ADAPT_IM or cfg.TRAIN.DOMAIN_ADAPT_ROI:
-                if cfg.TRAIN.DOMAIN_ADAPT_IM:
-                    da_image_pred = self.DiscriminatorImage_Head(blob_conv, alpha=dann_alpha)      
-                    loss_da_im = da.domain_loss_im(da_image_pred, domain_label)                
-                    return_dict['losses']['loss_da_im'] = loss_da_im * cfg.TRAIN.DOMAIN_ADAPT_IM_WEIGHT
-                if cfg.TRAIN.DOMAIN_ADAPT_ROI:
-                    da_roi_pred = self.DiscriminatorRoi_Head(act_feat, rpn_ret, alpha=dann_alpha)       
-                    loss_da_roi = da.domain_loss_roi(da_roi_pred, domain_label, rpn_ret['rois'])                
-                    return_dict['losses']['loss_da_roi'] = loss_da_roi * cfg.TRAIN.DOMAIN_ADAPT_ROI_WEIGHT
-                if cfg.TRAIN.DOMAIN_ADAPT_CST:
-                    assert cfg.TRAIN.DOMAIN_ADAPT_ROI and cfg.TRAIN.DOMAIN_ADAPT_IM
-                    loss_da_cst = da.domain_loss_cst(da_image_pred, da_roi_pred, rpn_ret['rois'])            
-                    return_dict['losses']['loss_da_cst'] = loss_da_cst * cfg.TRAIN.DOMAIN_ADAPT_CST_WEIGHT
 
             # pytorch0.4 bug on gathering scalar(0-dim) tensors
             for k, v in return_dict['losses'].items():
@@ -436,7 +400,7 @@ class Generalized_RCNN(nn.Module):
           - Use of FPN or not
           - Specifics of the transform method
         """
-        assert method in {'RoIPoolF', 'RoICrop', 'RoIAlign', 'DeformRoIPoolPack', 'ModulatedDeformRoIPoolPack'}, \
+        assert method in {'RoIPoolF', 'RoICrop', 'RoIAlign'}, \
             'Unknown pooling method: {}'.format(method)
 
         if isinstance(blobs_in, list):
@@ -470,12 +434,6 @@ class Generalized_RCNN(nn.Module):
                     elif method == 'RoIAlign':
                         xform_out = ROIAlign((
                             resolution, resolution), sc, sampling_ratio)(bl_in, rois)
-                    elif method == 'DeformRoIPoolPack':
-                        output_c = bl_in.size(1)
-                        xform_out = DeformRoIPoolPack((resolution, resolution), output_c, spatial_scale=sc, sampling_ratio=sampling_ratio).cuda(device_id)(bl_in.contiguous(), rois.contiguous())
-                    elif method == 'ModulatedDeformRoIPoolPack':
-                        output_c = bl_in.size(1)
-                        xform_out = DeformRoIPoolPack((resolution, resolution), output_c, spatial_scale=sc, sampling_ratio=sampling_ratio).cuda(device_id)(bl_in.contiguous(), rois.contiguous())
                     if (blob_rois == 'rois' or blob_rois == 'mask_rois') and query_blobs_in is not None:
                         query_bl_in = query_blobs_in[k_max - lvl]
                         query_bl_in = query_bl_in[batch_idxs]
@@ -496,8 +454,6 @@ class Generalized_RCNN(nn.Module):
             if (blob_rois == 'rois' or blob_rois == 'mask_rois') and query_blobs_in is not None:
                 query_xform_shuffled = torch.cat(query_bl_out_list, dim=0)
                 query_xform_out = query_xform_shuffled[restore_bl]
-                if cfg.FSSAN:
-                    query_xform_out = self.fssan_net(query_xform_out, xform_out)
                 return xform_out, query_xform_out
             else:
                 return xform_out
@@ -521,17 +477,9 @@ class Generalized_RCNN(nn.Module):
             elif method == 'RoIAlign':
                 xform_out = ROIAlign((
                     resolution, resolution), spatial_scale, sampling_ratio)(blobs_in, rois)
-            elif method == 'DeformRoIPoolPack':
-                output_c = blobs_in.size(1)
-                xform_out = DeformRoIPoolPack((resolution, resolution), output_c, spatial_scale=spatial_scale, sampling_ratio=sampling_ratio).cuda(device_id)(blobs_in.contiguous(), rois.contiguous())
-            elif method == 'ModulatedDeformRoIPoolPack':
-                output_c = blobs_in.size(1)
-                xform_out = ModulatedDeformRoIPoolPack((resolution, resolution), output_c, spatial_scale=spatial_scale, sampling_ratio=sampling_ratio).cuda(device_id)(blobs_in.contiguous(), rois.contiguous())
             if (blob_rois == 'rois' or blob_rois == 'mask_rois') and query_blobs_in is not None:
                 query_blobs_in = query_blobs_in[batch_idxs]
                 query_blobs_in = F.interpolate(query_blobs_in, size=[resolution, resolution], mode="bilinear")
-                if cfg.FSSAN:
-                    query_xform_out = self.fssan_net(query_blobs_in, xform_out)
                 return xform_out, query_blobs_in
             else:
                 return xform_out

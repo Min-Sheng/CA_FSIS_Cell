@@ -28,9 +28,6 @@ __C.SEEN = 1
 __C.CO_ATTEN = True
 __C.RELATION_RCNN = True
 
-__C.FSSUN = False
-__C.FSSAN = False
-
 # Random note: avoid using '.ON' as a config key since yaml converts it to True;
 # prefer 'ENABLED' instead
 
@@ -38,15 +35,6 @@ __C.FSSAN = False
 # Training options
 # ---------------------------------------------------------------------------- #
 __C.TRAIN = AttrDict()
-
-__C.TRAIN.DOMAIN_ADAPT_IM = False # image-level domain adaptation
-__C.TRAIN.DOMAIN_ADAPT_ROI = False # roi-level domain adaptation
-__C.TRAIN.DOMAIN_ADAPT_CST = False # consistency regularization
-__C.TRAIN.DOMAIN_ADAPT_IM_WEIGHT = 0.1
-__C.TRAIN.DOMAIN_ADAPT_ROI_WEIGHT = 0.1
-__C.TRAIN.DOMAIN_ADAPT_CST_WEIGHT = 0.1
-__C.TRAIN.DOMAIN_ADAPT_ALPHA = -0.1
-__C.TRAIN.DOMAIN_ADAPT_DYNAMIC_ALPHA = False
 
 # Datasets to train on
 # Available dataset list: datasets.dataset_catalog.DATASETS.keys()
@@ -169,14 +157,6 @@ __C.TRAIN.RPN_STRADDLE_THRESH = 0
 # (at orig image scale; not scale used during training or inference)
 __C.TRAIN.RPN_MIN_SIZE = 0
 
-__C.TRAIN.RPN_SPATIALLY_REGULARIZED = False
-# Gaussain kernl size is better in odd number.
-__C.TRAIN.RPN_GAUSSIAN_KERNEL_SIZE = 255
-# Gaussain kernel
-__C.TRAIN.RPN_GAUSSIAN_WEIGHTS = []
-# Gaussain wieght normalized values
-__C.TRAIN.RPN_GAUSSIAN_WEIGHTS_NORMALIZED_VALUE = []
-
 # Filter proposals that are inside of crowd regions by CROWD_FILTER_THRESH
 # "Inside" is measured as: proposal-with-crowd intersection area divided by
 # proposal area
@@ -187,9 +167,6 @@ __C.TRAIN.GT_MIN_AREA = -1
 
 # Freeze the backbone architecture during training if set to True
 __C.TRAIN.FREEZE_CONV_BODY = False
-
-# Freeze the BN layers in backbone architecture during training if set to True
-__C.TRAIN.FREEZE_BN = True
 
 __C.TRAIN.MARGIN = -0.3
 
@@ -497,8 +474,6 @@ __C.MODEL.UNSUPERVISED_POSE = False
 # Deformable Convolution options
 # ---------------------------------------------------------------------------- #
 __C.MODEL.USE_DEFORM = False
-__C.MODEL.USE_DEFORM_v2 = False
-__C.MODEL.USE_DEFORM_3PARTY = False
 
 # ---------------------------------------------------------------------------- #
 # RetinaNet options

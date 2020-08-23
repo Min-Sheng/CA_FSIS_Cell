@@ -48,13 +48,7 @@ class RoiDataLoader(data.Dataset):
                 blobs[key] = blobs[key].squeeze(axis=0)
 
         blobs['gt_cats'] = [x for x in blobs['gt_cats'] if x in self.list]
-        blobs['gt_cats'] = np.array(blobs['gt_cats'])
-        domain_type = self.find_domain(blobs['gt_cats'][0])
-        #if domain_type == "FIA":
-        #    blobs['domain_label'] = 0
-        #elif domain_type == "Bright field":
-        #    blobs['domain_label'] = 1
-        blobs['domain_label'] = sorted(self.list).index(blobs['gt_cats'][0])
+        blobs['gt_cats'] = np.array(blobs['gt_cats'])        
         scale = blobs['im_info'][-1]
         mask = cv2.resize(blobs['binary_mask'], None, None, fx = scale, fy = scale, interpolation = cv2.INTER_NEAREST)
         kernel = np.ones((5,5), np.uint8)

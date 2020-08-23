@@ -7,7 +7,6 @@ import torch.utils.model_zoo as model_zoo
 from core.config import cfg
 import utils.net as net_utils
 from deform.torch_deform_conv.layers import ConvOffset2D
-from mmcv.ops import DeformConv2dPack, ModulatedDeformConv2dPack
 
 model_urls = {
     'resnet50': 'https://s3.amazonaws.com/pytorch/models/resnet50-19c8e357.pth',
@@ -182,11 +181,10 @@ class ResNet_convX_body(nn.Module):
         self.res2, dim_in = add_stage(dim_in, 256, dim_bottleneck, block_counts[0],
                                       dilation=1, stride_init=1)
         if cfg.MODEL.USE_DEFORM:
-            deform_version = 2 if cfg.MODEL.USE_DEFORM_v2 else 1
             self.res3, dim_in = add_stage(dim_in, 512, dim_bottleneck * 2, block_counts[1],
-                                        dilation=1, stride_init=2, deform=True, defrom_3party=cfg.MODEL.USE_DEFORM_3PARTY, deform_version=deform_version)
+                                        dilation=1, stride_init=2, deform=True)
             self.res4, res4_dim_out = add_stage(dim_in, 1024, dim_bottleneck * 4, block_counts[2],
-                                        dilation=1, stride_init=2, deform=True, defrom_3party=cfg.MODEL.USE_DEFORM_3PARTY, deform_version=deform_version)
+                                        dilation=1, stride_init=2, deform=True)
         else:
             self.res3, dim_in = add_stage(dim_in, 512, dim_bottleneck * 2, block_counts[1],
                                         dilation=1, stride_init=2)
@@ -194,9 +192,8 @@ class ResNet_convX_body(nn.Module):
                                         dilation=1, stride_init=2)
         stride_init = 2 if cfg.RESNETS.RES5_DILATION == 1 else 1
         if cfg.MODEL.USE_DEFORM:
-            deform_version = 2 if cfg.MODEL.USE_DEFORM_v2 else 1
             self.res5, res5_dim_out = add_stage(res4_dim_out, 2048, dim_bottleneck * 8, block_counts[3],
-                                            cfg.RESNETS.RES5_DILATION, stride_init, deform=True, defrom_3party=cfg.MODEL.USE_DEFORM_3PARTY, deform_version=deform_version)
+                                            cfg.RESNETS.RES5_DILATION, stride_init, deform=True)
         else:
             self.res5, res5_dim_out = add_stage(res4_dim_out, 2048, dim_bottleneck * 8, block_counts[3],
                                             cfg.RESNETS.RES5_DILATION, stride_init)
@@ -234,9 +231,8 @@ class ResNet_convX_body(nn.Module):
             if classname.find('BatchNorm') != -1:
                 for p in m.parameters(): p.requires_grad=False
         
-        if cfg.TRAIN.FREEZE_BN:
-            # Freeze all bn layers !!!
-            self.apply(set_bn_fix)
+        # Freeze all bn layers !!!
+        self.apply(set_bn_fix)
 
     def train(self, mode=True):
         # Override
@@ -250,9 +246,8 @@ class ResNet_convX_body(nn.Module):
             if classname.find('BatchNorm') != -1:
                 m.eval()
 
-        if cfg.TRAIN.FREEZE_BN:
-            # Set all bn layers to eval
-            self.apply(set_bn_eval)
+        # Set all bn layers to eval
+        self.apply(set_bn_eval)
 
     def forward(self, x):
         for i in range(self.convX):
@@ -291,9 +286,8 @@ class ResNet_roi_conv5_head(nn.Module):
             if classname.find('BatchNorm') != -1:
                 for p in m.parameters(): p.requires_grad=False
         
-        if cfg.TRAIN.FREEZE_BN:
-            # Freeze all bn layers !!!
-            self.apply(set_bn_fix)
+        # Freeze all bn layers !!!
+        self.apply(set_bn_fix)
     
     def forward(self, x, rpn_ret):
         x = self.roi_xform(
@@ -343,9 +337,8 @@ class ResNet_roi_conv5_head_co(nn.Module):
             if classname.find('BatchNorm') != -1:
                 for p in m.parameters(): p.requires_grad=False
 
-        if cfg.TRAIN.FREEZE_BN:
-            # Freeze all bn layers !!!
-            self.apply(set_bn_fix)
+        # Freeze all bn layers !!!
+        self.apply(set_bn_fix)
     
     def forward(self, x, y, rpn_ret):
         x, y = self.roi_xform(
@@ -368,7 +361,7 @@ class ResNet_roi_conv5_head_co(nn.Module):
         else:
             return x, y
 
-def add_stage(inplanes, outplanes, innerplanes, nblocks, dilation=1, stride_init=2, deform=False, defrom_3party=False, deform_version=1):
+def add_stage(inplanes, outplanes, innerplanes, nblocks, dilation=1, stride_init=2, deform=False):
     """Make a stage consist of `nblocks` residual blocks.
     Returns:
         - stage module: an nn.Sequentail module of residual blocks
@@ -378,15 +371,15 @@ def add_stage(inplanes, outplanes, innerplanes, nblocks, dilation=1, stride_init
     stride = stride_init
     for _ in range(nblocks):
         res_blocks.append(add_residual_block(
-            inplanes, outplanes, innerplanes, dilation, stride, deform=deform, defrom_3party=defrom_3party, deform_version=deform_version
-        ))
+            inplanes, outplanes, innerplanes, dilation, stride, deform=deform)
+            )
         inplanes = outplanes
         stride = 1
 
     return nn.Sequential(*res_blocks), outplanes
 
 
-def add_residual_block(inplanes, outplanes, innerplanes, dilation, stride, deform=False, defrom_3party=False, deform_version=1):
+def add_residual_block(inplanes, outplanes, innerplanes, dilation, stride, deform=False):
     """Return a residual block module, including residual connection, """
     if stride != 1 or inplanes != outplanes:
         shortcut_func = globals()[cfg.RESNETS.SHORTCUT_FUNC]
@@ -398,7 +391,7 @@ def add_residual_block(inplanes, outplanes, innerplanes, dilation, stride, defor
     res_block = trans_func(
         inplanes, outplanes, innerplanes, stride,
         dilation=dilation, group=cfg.RESNETS.NUM_GROUPS,
-        downsample=downsample, deform=deform, defrom_3party=defrom_3party, deform_version=deform_version)
+        downsample=downsample, deform=deform)
 
     return res_block
 
@@ -458,7 +451,7 @@ class bottleneck_transformation(nn.Module):
     """ Bottleneck Residual Block """
 
     def __init__(self, inplanes, outplanes, innerplanes, stride=1, dilation=1, group=1,
-                 downsample=None, deform=False, defrom_3party=False, deform_version=1):
+                 downsample=None, deform=False):
         super().__init__()
         # In original resnet, stride=2 is on 1x1.
         # In fb.torch resnet, stride=2 is on 3x3.
@@ -466,8 +459,6 @@ class bottleneck_transformation(nn.Module):
         self.stride = stride
 
         self.deform = deform
-        self.defrom_3party = defrom_3party
-        self.deform_version = deform_version
         if not self.deform:
             self.conv1 = nn.Conv2d(
                 inplanes, innerplanes, kernel_size=1, stride=str1x1, bias=False)
@@ -486,59 +477,24 @@ class bottleneck_transformation(nn.Module):
             self.relu = nn.ReLU(inplace=True)
         
         else:
-            if self.defrom_3party:
+            self.offsets1 = ConvOffset2D(inplanes)
+            self.conv1 = nn.Conv2d(
+                inplanes, innerplanes, kernel_size=1, stride=str1x1, bias=False)
+            self.bn1 = nn.BatchNorm2d(innerplanes)
 
-                self.offsets1 = ConvOffset2D(inplanes)
-                self.conv1 = nn.Conv2d(
-                    inplanes, innerplanes, kernel_size=1, stride=str1x1, bias=False)
-                self.bn1 = nn.BatchNorm2d(innerplanes)
+            self.offsets2 = ConvOffset2D(innerplanes)
+            self.conv2 = nn.Conv2d(
+                innerplanes, innerplanes, kernel_size=3, stride=str3x3, bias=False,
+                padding=1 * dilation, dilation=dilation, groups=group)
+            self.bn2 = nn.BatchNorm2d(innerplanes)
 
-                self.offsets2 = ConvOffset2D(innerplanes)
-                self.conv2 = nn.Conv2d(
-                    innerplanes, innerplanes, kernel_size=3, stride=str3x3, bias=False,
-                    padding=1 * dilation, dilation=dilation, groups=group)
-                self.bn2 = nn.BatchNorm2d(innerplanes)
+            self.offsets3 = ConvOffset2D(innerplanes)
+            self.conv3 = nn.Conv2d(
+                innerplanes, outplanes, kernel_size=1, stride=1, bias=False)
+            self.bn3 = nn.BatchNorm2d(outplanes)
 
-                self.offsets3 = ConvOffset2D(innerplanes)
-                self.conv3 = nn.Conv2d(
-                    innerplanes, outplanes, kernel_size=1, stride=1, bias=False)
-                self.bn3 = nn.BatchNorm2d(outplanes)
-
-                self.downsample = downsample
-                self.relu = nn.ReLU(inplace=True)
-
-            else:
-                if self.deform_version == 1:
-                    self.conv1 = nn.Conv2d(
-                        inplanes, innerplanes, kernel_size=1, stride=str1x1, bias=False)
-                    self.bn1 = nn.BatchNorm2d(innerplanes)
-
-                    self.conv2 = DeformConv2dPack(innerplanes, innerplanes, kernel_size=3, stride=str3x3, bias=False,
-                        padding=1 * dilation, dilation=dilation, groups=group)
-                    self.bn2 = nn.BatchNorm2d(innerplanes)
-
-                    self.conv3 = nn.Conv2d(
-                        innerplanes, outplanes, kernel_size=1, stride=1, bias=False)
-                    self.bn3 = nn.BatchNorm2d(outplanes)
-
-                    self.downsample = downsample
-                    self.relu = nn.ReLU(inplace=True)
-
-                elif self.deform_version == 2:
-                    self.conv1 = nn.Conv2d(
-                        inplanes, innerplanes, kernel_size=1, stride=str1x1, bias=False)
-                    self.bn1 = nn.BatchNorm2d(innerplanes)
-
-                    self.conv2 = ModulatedDeformConv2dPack(innerplanes, innerplanes, kernel_size=3, stride=str3x3, bias=False,
-                        padding=1 * dilation, dilation=dilation, groups=group)
-                    self.bn2 = nn.BatchNorm2d(innerplanes)
-
-                    self.conv3 = nn.Conv2d(
-                        innerplanes, outplanes, kernel_size=1, stride=1, bias=False)
-                    self.bn3 = nn.BatchNorm2d(outplanes)
-
-                    self.downsample = downsample
-                    self.relu = nn.ReLU(inplace=True)
+            self.downsample = downsample
+            self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         residual = x
@@ -556,33 +512,19 @@ class bottleneck_transformation(nn.Module):
             out = self.bn3(out)
         
         else:
-            if self.defrom_3party:
-                out = self.offsets1(x)
-                out = self.conv1(out)
-                out = self.bn1(out)
-                out = self.relu(out)
+            out = self.offsets1(x)
+            out = self.conv1(out)
+            out = self.bn1(out)
+            out = self.relu(out)
 
-                out = self.offsets2(out)
-                out = self.conv2(out)
-                out = self.bn2(out)
-                out = self.relu(out)
+            out = self.offsets2(out)
+            out = self.conv2(out)
+            out = self.bn2(out)
+            out = self.relu(out)
 
-                out = self.offsets3(out)
-                out = self.conv3(out)
-                out = self.bn3(out)
-
-            else:
-
-                out = self.conv1(x)
-                out = self.bn1(out)
-                out = self.relu(out)
-
-                out = self.conv2(out.contiguous())
-                out = self.bn2(out)
-                out = self.relu(out)
-
-                out = self.conv3(out)
-                out = self.bn3(out)
+            out = self.offsets3(out)
+            out = self.conv3(out)
+            out = self.bn3(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
