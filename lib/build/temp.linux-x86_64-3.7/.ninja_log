@@ -1,0 +1,7 @@
+# ninja log v5
+1	18124	1598196667666984372	/home/vincentwu929/CA_FSIS_Cell/lib/build/temp.linux-x86_64-3.7/home/vincentwu929/CA_FSIS_Cell/lib/model/csrc/cuda/nms.o	cc2ac57e83cb0511
+0	18470	1598196668020287080	/home/vincentwu929/CA_FSIS_Cell/lib/build/temp.linux-x86_64-3.7/home/vincentwu929/CA_FSIS_Cell/lib/model/csrc/cpu/ROIAlign_cpu.o	1b9d35bd5b0eafec
+1	18559	1598196668104313051	/home/vincentwu929/CA_FSIS_Cell/lib/build/temp.linux-x86_64-3.7/home/vincentwu929/CA_FSIS_Cell/lib/model/csrc/cuda/ROIPool_cuda.o	ccf7f072b6b2e6ab
+1	18922	1598196668469139267	/home/vincentwu929/CA_FSIS_Cell/lib/build/temp.linux-x86_64-3.7/home/vincentwu929/CA_FSIS_Cell/lib/model/csrc/cuda/ROIAlign_cuda.o	9e1d205f55345529
+1	18992	1598196668541244390	/home/vincentwu929/CA_FSIS_Cell/lib/build/temp.linux-x86_64-3.7/home/vincentwu929/CA_FSIS_Cell/lib/model/csrc/cpu/nms_cpu.o	e927879f3271384e
+0	20845	1598196670391203938	/home/vincentwu929/CA_FSIS_Cell/lib/build/temp.linux-x86_64-3.7/home/vincentwu929/CA_FSIS_Cell/lib/model/csrc/vision.o	cf62a8027d6f82d7
