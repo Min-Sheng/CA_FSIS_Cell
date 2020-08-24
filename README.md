@@ -1,59 +1,14 @@
-**Use this instead: https://github.com/facebookresearch/maskrcnn-benchmark**
+# Class-agnostic Few-shot Instance Segmentation of Digital Pathological Images
 
-# A Pytorch Implementation of Detectron
+![Image](images/method.png)
 
-[![Build Status](https://travis-ci.com/roytseng-tw/Detectron.pytorch.svg?branch=master)](https://travis-ci.com/roytseng-tw/Detectron.pytorch)
-
-<div align="center">
-
-<img src="demo/33823288584_1d21cf0a26_k-pydetectron-R101-FPN.jpg" width="700px"/>
-
-<p> Example output of <b>e2e_mask_rcnn-R-101-FPN_2x</b> using Detectron pretrained weight.</p>
-
-<img src="demo/33823288584_1d21cf0a26_k-detectron-R101-FPN.jpg" width="700px"/>
-
-<p>Corresponding example output from Detectron. </p>
-
-<img src="demo/img1_keypoints-pydetectron-R50-FPN.jpg" width="700px"/>
-
-<p>Example output of <b>e2e_keypoint_rcnn-R-50-FPN_s1x</b> using Detectron pretrained weight.</p>
-
-</div>
-
-**This code follows the implementation architecture of Detectron.** Only part of the functionality is supported. Check [this section](#supported-network-modules) for more information.
-
-With this code, you can...
-
-1. **Train your model from scratch.**
-2. **Inference using the pretrained weight file (*.pkl) from Detectron.**
-
-This repository is originally built on [jwyang/faster-rcnn.pytorch](https://github.com/jwyang/faster-rcnn.pytorch). However, after many modifications, the structure changes a lot and it's now more similar to [Detectron](https://github.com/facebookresearch/Detectron). I deliberately make everything similar or identical to Detectron's implementation, so as to reproduce the result directly from official pretrained weight files.
-
-This implementation has the following features:
-
-- **It is pure Pytorch code**. Of course, there are some CUDA code.
-
-- **It supports multi-image batch training**.
-
-- **It supports multiple GPUs training**.
-
-- **It supports three pooling methods**. Notice that only **roi align** is revised to match the implementation in Caffe2. So, use it.
-
-- **It is memory efficient**. For data batching, there are two techiniques available to reduce memory usage: 1) *Aspect grouping*: group images with similar aspect ratio in a batch 2) *Aspect cropping*: crop images that are too long. Aspect grouping is implemented in Detectron, so it's used for default. Aspect cropping is the idea from [jwyang/faster-rcnn.pytorch](https://github.com/jwyang/faster-rcnn.pytorch), and it's not used for default.
-
-  Besides of that, I implement a customized `nn.DataParallel ` module which enables different batch blob size on different gpus. Check [My nn.DataParallel](#my-nndataparallel) section for more details about this.
-
-## News
-
-- (2018/05/25) Support ResNeXt backbones.
-- (2018/05/22) Add group normalization baselines.
-- (2018/05/15) PyTorch0.4 is supported now !
+This project is a pure pytorch implementation of *Class-agnostic Few-shot Instance Segmentation of Digital Pathological Images*. A majority of the code is modified from [roytseng-tw/Detectron.pytorch](https://github.com/roytseng-tw/Detectron.pytorch).
 
 ## Getting Started
 Clone the repo:
 
 ```
-git clone https://github.com/roytseng-tw/mask-rcnn.pytorch.git
+git clone https://github.com/Min-Sheng/CA_FSIS_Cell.git
 ```
 
 ### Requirements
@@ -73,22 +28,17 @@ Tested under python3.
   - [pycocotools](https://github.com/cocodataset/cocoapi)  — for COCO dataset, also available from pip.
   - tensorboardX  — for logging the losses in Tensorboard
 - An NVIDAI GPU and CUDA 8.0 or higher. Some operations only have gpu implementation.
-- **NOTICE**: different versions of Pytorch package have different memory usages.
 
 ### Compilation
 
-Compile the CUDA code:
+Compile the cuda dependencies using following simple commands:
 
 ```
 cd lib  # please change to this directory
 sh make.sh
 ```
 
-If your are using Volta GPUs, uncomment this [line](https://github.com/roytseng-tw/mask-rcnn.pytorch/tree/master/lib/make.sh#L15) in `lib/mask.sh` and remember to postpend a backslash at the line above. `CUDA_PATH` defaults to `/usr/loca/cuda`. If you want to use a CUDA library on different path, change this [line](https://github.com/roytseng-tw/mask-rcnn.pytorch/tree/master/lib/make.sh#L3) accordingly.
-
 It will compile all the modules you need, including NMS, ROI_Pooing, ROI_Crop and ROI_Align. (Actually gpu nms is never used ...)
-
-Note that, If you use `CUDA_VISIBLE_DEVICES` to set gpus, **make sure at least one gpu is visible when compile the code.**
 
 ### Data Preparation
 
@@ -99,83 +49,30 @@ cd {repo_root}
 mkdir data
 ```
 
-- **COCO**:
-  Download the coco images and annotations from [coco website](http://cocodataset.org/#download).
+- **FIS-Cell**:
+  Download the FIS-Cell(Few-shot Instance Segmentation for Cell images) dataset.
 
-  And make sure to put the files as the following structure:
-  ```
-  coco
-  ├── annotations
-  |   ├── instances_minival2014.json
-  │   ├── instances_train2014.json
-  │   ├── instances_train2017.json
-  │   ├── instances_val2014.json
-  │   ├── instances_val2017.json
-  │   ├── instances_valminusminival2014.json
-  │   ├── ...
-  |
-  └── images
-      ├── train2014
-      ├── train2017
-      ├── val2014
-      ├──val2017
-      ├── ...
-  ```
-  Download coco mini annotations from [here](https://s3-us-west-2.amazonaws.com/detectron/coco/coco_annotations_minival.tgz).
-  Please note that minival is exactly equivalent to the recently defined 2017 val set. Similarly, the union of valminusminival and the 2014 train is exactly equivalent to the 2017 train set.
-
-   Feel free to put the dataset at any place you want, and then soft link the dataset under the `data/` folder:
+  Feel free to put the dataset at any place you want, and then soft link the dataset under the `data/` folder:
 
    ```
-   ln -s path/to/coco data/coco
+   ln -s path/to/FIS-Cell data/fss_cell
    ```
 
   Recommend to put the images on a SSD for possible better training performance
 
 ### Pretrained Model
 
-I use ImageNet pretrained weights from Caffe for the backbone networks.
+We use ResNet50 as the pretrained model in our experiments. This pretrained model is from [timy90022
+/
+One-Shot-Object-Detection](https://github.com/timy90022
+/
+One-Shot-Object-Detection) and available at
 
-- [ResNet50](https://drive.google.com/open?id=1wHSvusQ1CiEMc5Nx5R8adqoHQjIDWXl1), [ResNet101](https://drive.google.com/open?id=1x2fTMqLrn63EMW0VuK4GEa2eQKzvJ_7l), [ResNet152](https://drive.google.com/open?id=1NSCycOb7pU0KzluH326zmyMFUU55JslF)
-- [VGG16](https://drive.google.com/open?id=19UphT53C0Ua9JAtICnw84PPTa3sZZ_9k)  (vgg backbone is not implemented yet)
+* ResNet50: [Google Drive](https://drive.google.com/file/d/1SL9DDezW-neieqxWyNlheNefwgLanEoV/view?usp=sharing)
 
-Download them and put them into the `{repo_root}/data/pretrained_model`.
-
-You can the following command to download them all:
-
-- extra required packages: `argparse_color_formater`, `colorama`, `requests`
-
-```
-python tools/download_imagenet_weights.py
-```
-
-**NOTE**: Caffe pretrained weights have slightly better performance than Pytorch pretrained. Suggest to use Caffe pretrained models from the above link to reproduce the results. By the way, Detectron also use pretrained weights from Caffe.
-
-**If you want to use pytorch pre-trained models, please remember to transpose images from BGR to RGB, and also use the same data preprocessing (minus mean and normalize) as used in Pytorch pretrained model.**
-
-#### ImageNet Pretrained Model provided by Detectron
-
-- [R-50.pkl](https://s3-us-west-2.amazonaws.com/detectron/ImageNetPretrained/MSRA/R-50.pkl)
-- [R-101.pkl](https://s3-us-west-2.amazonaws.com/detectron/ImageNetPretrained/MSRA/R-101.pkl)
-- [R-50-GN.pkl](https://s3-us-west-2.amazonaws.com/detectron/ImageNetPretrained/47261647/R-50-GN.pkl)
-- [R-101-GN.pkl](https://s3-us-west-2.amazonaws.com/detectron/ImageNetPretrained/47592356/R-101-GN.pkl)
-- [X-101-32x8d.pkl](https://s3-us-west-2.amazonaws.com/detectron/ImageNetPretrained/20171220/X-101-32x8d.pkl)
-- [X-101-64x4d.pkl](https://s3-us-west-2.amazonaws.com/detectron/ImageNetPretrained/FBResNeXt/X-101-64x4d.pkl)
-- [X-152-32x8d-IN5k.pkl](https://s3-us-west-2.amazonaws.com/detectron/ImageNetPretrained/25093814/X-152-32x8d-IN5k.pkl)
-
-Besides of using the pretrained weights for ResNet above, you can also use the weights from Detectron by changing the corresponding line in model config file as follows:
-```
-RESNETS:
-  IMAGENET_PRETRAINED_WEIGHTS: 'data/pretrained_model/R-50.pkl'
-```
-
-R-50-GN.pkl and R-101-GN.pkl are required for gn_baselines.
-
-X-101-32x8d.pkl, X-101-64x4d.pkl and X-152-32x8d-IN5k.pkl are required for ResNeXt backbones.
+Download and unzip them into the `{repo_root}/data/`.
 
 ## Training
-
-**DO NOT CHANGE anything in the provided config files(configs/\*\*/xxxx.yml) unless you know what you are doing**
 
 Use the environment variable `CUDA_VISIBLE_DEVICES` to control which GPUs to use.
 
