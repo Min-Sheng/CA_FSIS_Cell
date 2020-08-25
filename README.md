@@ -97,94 +97,39 @@ Following config options will be adjusted **automatically** according to actual 
 - `SOLVER.STEPS`, `SOLVER.MAX_ITER`: adjust inversely propotional to the change of effective_batch_size.
 
 ### Train from scratch
-Take mask-rcnn with res50 backbone for example.
-```
-python tools/train_net_step.py --dataset coco2017 --cfg configs/baselines/e2e_mask_rcnn_R-50-C4.yml --use_tfboard --bs {batch_size} --nw {num_workers}
+
+To train a model with ResNet50 on FIS-Cell, simply run:
+
+```bash
+python tools/train_net_step.py --dataset fss_cell --use_tfboard --bs {batch_size} --nw {num_workers} --g {split_id} --seen {seen_id} --k {num_shots}
 ```
 
 Use `--bs` to overwrite the default batch size to a proper value that fits into your GPUs. Simliar for `--nw`, number of data loader threads defaults to 4 in config.py.
 
 Specify `—-use_tfboard` to log the losses on Tensorboard.
 
-**NOTE**: use `--dataset keypoints_coco2017` when training for keypoint-rcnn.
-
-### The use of `--iter_size`
-As in Caffe, update network once (`optimizer.step()`) every `iter_size` iterations (forward + backward). This way to have a larger effective batch size for training. Notice that, step count is only increased after network update.
-
-```
-python tools/train_net_step.py --dataset coco2017 --cfg configs/baselines/e2e_mask_rcnn_R-50-C4.yml --bs 4 --iter_size 4
-```
-`iter_size` defaults to 1.
-
 ### Finetune from a pretrained checkpoint
-```
+
+```bash
 python tools/train_net_step.py ... --load_ckpt {path/to/the/checkpoint}
-```
-or using Detectron's checkpoint file
-```
-python tools/train_net_step.py ... --load_detectron {path/to/the/checkpoint}
 ```
 
 ### Resume training with the same dataset and batch size
-```
+
+```bash
 python tools/train_net_step.py ... --load_ckpt {path/to/the/checkpoint} --resume
 ```
 When resume the training, **step count** and **optimizer state** will also be restored from the checkpoint. For SGD optimizer, optimizer state contains the momentum for each trainable parameter.
 
-**NOTE**: `--resume` is not yet supported for `--load_detectron`
-
-### Set config options in command line
-```
-  python tools/train_net_step.py ... --no_save --set {config.name1} {value1} {config.name2} {value2} ...
-```
-- For Example, run for debugging.
-  ```
-  python tools/train_net_step.py ... --no_save --set DEBUG True
-  ```
-  Load less annotations to accelarate training progress. Add `--no_save` to avoid saving any checkpoint or logging.
-
-### Show command line help messages
-```
-python train_net_step.py --help
-```
-
-### Two Training Scripts
-
-In short, use `train_net_step.py`.
-
-In `train_net_step.py`:
-- `SOLVER.LR_POLICY: steps_with_decay` is supported.
-- Training warm up in [Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour](https://arxiv.org/abs/1706.02677) is supported.
-
-(Deprecated) In `train_net.py` some config options have no effects and worth noticing:
-
- - `SOLVER.LR_POLICY`, `SOLVER.MAX_ITER`, `SOLVER.STEPS`,`SOLVER.LRS`:
-  For now, the training policy is controlled by these command line arguments:
-
-    - **`--epochs`**: How many epochs to train. One epoch means one travel through the whole training sets. Defaults to  6.
-    - **`--lr_decay_epochs `**: Epochs to decay the learning rate on. Decay happens on the beginning of a epoch. Epoch is 0-indexed. Defaults to [4, 5].
-
-   For more command line arguments, please refer to `python train_net.py --help`
-
-- `SOLVER.WARM_UP_ITERS`, `SOLVER.WARM_UP_FACTOR`, `SOLVER.WARM_UP_METHOD`:
-  Training warm up is not supported.
-
 ## Inference
 
 ### Evaluate the training results
-For example, test mask-rcnn on coco2017 val set
-```
-python tools/test_net.py --dataset coco2017 --cfg config/baselines/e2e_mask_rcnn_R-50-FPN_1x.yaml --load_ckpt {path/to/your/checkpoint}
-```
-Use `--load_detectron` to load Detectron's checkpoint. If multiple gpus are available, add `--multi-gpu-testing`.
+To test the model on FIS-Cell, simply run:
 
+```bash
+python tools/test_net_few_shot.py --dataset fss_cell --load_ckpt {path/to/your/checkpoint} --g {split_id} --seen {seen_id} --k {num_shots} --a {avg_iters} --vis
+```
 Specify a different output directry, use `--output_dir {...}`. Defaults to `{the/parent/dir/of/checkpoint}/test`
-
-### Visualize the training results on images
-```
-python tools/infer_simple.py --dataset coco --cfg cfgs/baselines/e2e_mask_rcnn_R-50-C4.yml --load_ckpt {path/to/your/checkpoint} --image_dir {dir/of/input/images}  --output_dir {dir/to/save/visualizations}
-```
-`--output_dir` defaults to `infer_outputs`.
 
 ## Configuration Options
 
