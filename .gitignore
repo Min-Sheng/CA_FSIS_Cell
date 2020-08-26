@@ -11,7 +11,7 @@ lib/build
 .ipynb_checkpoints
 notebooks/*.pkl
 
-/Outputs
+/Outputs*
 
 # ------------------------------
 
