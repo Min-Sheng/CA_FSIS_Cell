@@ -55,7 +55,7 @@ mkdir data
   Feel free to put the dataset at any place you want, and then soft link the dataset under the `data/` folder:
 
    ```bash
-   ln -s path/to/FIS-Cell data/fss_cell
+   ln -s path/to/FIS-Cell data/fis_cell
    ```
 
   Recommend to put the images on a SSD for possible better training performance.
@@ -101,7 +101,7 @@ Following config options will be adjusted **automatically** according to actual 
 To train a model with ResNet50 on FIS-Cell, simply run:
 
 ```bash
-python tools/train_net_step.py --dataset fss_cell --use_tfboard --bs {batch_size} --nw {num_workers} --g {split_id} --seen {seen_id} --k {num_shots}
+python tools/train_net_step.py --dataset fis_cell --use_tfboard --bs {batch_size} --nw {num_workers} --g {split_id} --seen {seen_id} --k {num_shots}
 ```
 
 Use `--bs` to overwrite the default batch size to a proper value that fits into your GPUs. Simliar for `--nw`, number of data loader threads defaults to 4 in config.py.
@@ -127,7 +127,7 @@ When resume the training, **step count** and **optimizer state** will also be re
 To test the model on FIS-Cell, simply run:
 
 ```bash
-python tools/test_net_few_shot.py --dataset fss_cell --load_ckpt {path/to/your/checkpoint} --g {split_id} --seen {seen_id} --k {num_shots} --a {avg_iters} --vis
+python tools/test_net_few_shot.py --dataset fis_cell --load_ckpt {path/to/your/checkpoint} --g {split_id} --seen {seen_id} --k {num_shots} --a {avg_iters} --vis
 ```
 Specify a different output directry, use `--output_dir {...}`. Defaults to `{the/parent/dir/of/checkpoint}/test`
 

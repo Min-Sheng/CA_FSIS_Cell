@@ -143,8 +143,8 @@ def main():
     if args.deform_conv:
         cfg.MODEL.USE_DEFORM = True
 
-    if args.dataset == "fss_cell":
-        cfg.TEST.DATASETS = ('fss_cell_test',)
+    if args.dataset == "fis_cell":
+        cfg.TEST.DATASETS = ('fis_cell_test',)
         cfg.MODEL.NUM_CLASSES = 2
     elif args.dataset == "coco2017":
         cfg.TEST.DATASETS = ('coco_2017_val',)

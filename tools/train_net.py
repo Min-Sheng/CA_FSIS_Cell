@@ -157,8 +157,8 @@ def main():
     else:
         raise ValueError("Need Cuda device to run !")
 
-    if args.dataset == "fss_cell":
-        cfg.TRAIN.DATASETS = ('fss_cell_train_val',)
+    if args.dataset == "fis_cell":
+        cfg.TRAIN.DATASETS = ('fis_cell_train_val',)
         cfg.MODEL.NUM_CLASSES = 2
     elif args.dataset == "coco2017":
         cfg.TRAIN.DATASETS = ('coco_2017_train',)

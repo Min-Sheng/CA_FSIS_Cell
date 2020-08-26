@@ -45,7 +45,7 @@ from utils.logging import send_email
 import datasets.cityscapes_json_dataset_evaluator as cs_json_dataset_evaluator
 import datasets.json_dataset_evaluator as json_dataset_evaluator
 import datasets.voc_dataset_evaluator as voc_dataset_evaluator
-import datasets.fss_cell_evaluator as fss_cell_dataset_evaluator
+import datasets.fis_cell_evaluator as fis_cell_dataset_evaluator
 
 
 logger = logging.getLogger(__name__)
@@ -76,9 +76,9 @@ def evaluate_boxes(dataset, all_boxes, output_dir, use_matlab=False):
     """Evaluate bounding box detection."""
     logger.info('Evaluating detections')
     not_comp = not cfg.TEST.COMPETITION_MODE
-    if _use_fss_cell_dataset_evaluator(dataset):
-        logger.warn('FSS-Cell bbox evaluated using COCO metrics/conversions')
-        coco_eval = fss_cell_dataset_evaluator.evaluate_boxes(
+    if _use_fis_cell_dataset_evaluator(dataset):
+        logger.warn('FIS-Cell bbox evaluated using COCO metrics/conversions')
+        coco_eval = fis_cell_dataset_evaluator.evaluate_boxes(
             dataset, all_boxes, output_dir, use_salt=not_comp, cleanup=not_comp
         )
         box_results = _coco_eval_to_box_results(coco_eval)
@@ -111,8 +111,8 @@ def evaluate_masks(dataset, all_boxes, all_segms, output_dir):
     """Evaluate instance segmentation."""
     logger.info('Evaluating segmentations')
     not_comp = not cfg.TEST.COMPETITION_MODE
-    if _use_fss_cell_dataset_evaluator(dataset):
-        coco_eval = fss_cell_dataset_evaluator.evaluate_masks(
+    if _use_fis_cell_dataset_evaluator(dataset):
+        coco_eval = fis_cell_dataset_evaluator.evaluate_masks(
             dataset,
             all_boxes,
             all_segms,
@@ -259,9 +259,9 @@ def check_expected_results(results, atol=0.005, rtol=0.1):
             msg = 'PASS: ' + msg
             logger.info(msg)
 
-def _use_fss_cell_dataset_evaluator(dataset):
-    """Check if the dataset uses the FSS-Cell dataset evaluator."""
-    return dataset.name.find('fss_cell') > -1
+def _use_fis_cell_dataset_evaluator(dataset):
+    """Check if the dataset uses the FIS-Cell dataset evaluator."""
+    return dataset.name.find('fis_cell') > -1
 
 def _use_json_dataset_evaluator(dataset):
     """Check if the dataset uses the general json dataset evaluator."""

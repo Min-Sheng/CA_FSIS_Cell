@@ -13,7 +13,7 @@
 # limitations under the License.
 ##############################################################################
 
-"""Representation of the FSS-Cell json dataset format."""
+"""Representation of the FIS-Cell json dataset format."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 
 class JsonDataset(object):
-    """A class representing a FSS-Cell json dataset."""
+    """A class representing a FIS-Cell json dataset."""
 
     def __init__(self, name):
         assert name in DATASETS.keys(), \
