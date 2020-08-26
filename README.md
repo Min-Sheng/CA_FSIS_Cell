@@ -13,11 +13,15 @@ git clone https://github.com/Min-Sheng/CA_FSIS_Cell.git
 
 ## Requirements
 
-Tested under python3.
-
-- python packages
-  - pytorch>=0.3.1
-  - torchvision>=0.2.0
+Create the conda environment:
+```bash
+$ conda env create --file environment.yaml
+```
+including:
+  - python=3.7.3
+  - cuda=10.0
+  - pytorch=1.1.0
+  - torchvision=0.3.0
   - cython
   - matplotlib
   - numpy
@@ -27,8 +31,7 @@ Tested under python3.
   - packaging
   - [pycocotools](https://github.com/cocodataset/cocoapi)  — for COCO dataset, also available from pip.
   - tensorboardX  — for logging the losses in Tensorboard.
-- An NVIDAI GPU and CUDA 8.0 or higher. Some operations only have gpu implementation.
-
+ 
 ## Compilation
 
 Compile the cuda dependencies using following simple commands:
