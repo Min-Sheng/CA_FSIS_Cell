@@ -116,6 +116,7 @@ Specify `—-use_tfboard` to log the losses on Tensorboard.
 ```bash
 python tools/train_net_step.py ... --load_ckpt {path/to/the/checkpoint}
 ```
+***※You can download our model weights from: [Google Drive](https://drive.google.com/drive/folders/1j3JkIkR7fKBe2pZE5BW1OAqvjRVxqVAZ?usp=sharing)***
 
 ### Resume training with the same dataset and batch size
 
