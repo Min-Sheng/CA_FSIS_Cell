@@ -63,7 +63,10 @@ def im_detect_all(model, im, query, query_type, catgory, num_classes, box_propos
         timers = defaultdict(Timer)
 
     timers['im_detect_bbox'].tic()
-    catgory = catgory[0].item()
+    if isinstance(catgory, list): 
+        catgory = catgory[0].item()
+    else:
+        catgory
     scores, boxes, im_scale, blob_conv, query_conv = im_detect_bbox(
         model, im, query, query_type, cfg.TEST.SCALE, cfg.TEST.MAX_SIZE, box_proposals)
     timers['im_detect_bbox'].toc()
@@ -122,12 +125,14 @@ def im_detect_bbox(model, im, query, query_type, target_scale, target_max_size, 
         inputs['data'] = [Variable(torch.from_numpy(inputs['data']), volatile=True)]
         inputs['query'] = query
         inputs['im_info'] = [Variable(torch.from_numpy(inputs['im_info']), volatile=True)]
-        inputs['query_type'] = query_type
+        if query_type:
+            inputs['query_type'] = query_type
     else:
         inputs['data'] = [torch.from_numpy(inputs['data'])]
         inputs['query'] = query
         inputs['im_info'] = [torch.from_numpy(inputs['im_info'])]
-        inputs['query_type'] = query_type
+        if query_type:
+            inputs['query_type'] = query_type
 
     return_dict = model(**inputs)
 

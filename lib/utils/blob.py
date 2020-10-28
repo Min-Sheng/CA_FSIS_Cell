@@ -267,3 +267,24 @@ def crop(image, purpose, size):
 
     return cropped_image
     #return cv2.resize(cropped_image, (size,size), interpolation=cv2.INTER_LINEAR)
+
+def pad2square(image, size):
+
+    height, width = image.shape[0:2]
+
+    max_hw   = max(height, width)
+    cty, ctx = [height // 2, width // 2]
+
+    padded_image  = np.zeros((max_hw, max_hw, 3), dtype=image.dtype)
+
+    x0, x1 = max(0, ctx - max_hw // 2), min(ctx + max_hw // 2, width)
+    y0, y1 = max(0, cty - max_hw // 2), min(cty + max_hw // 2, height)
+
+    left, right = ctx - x0, x1 - ctx
+    top, bottom = cty - y0, y1 - cty
+
+    padded_cty, padded_ctx = max_hw // 2, max_hw // 2
+    y_slice = slice(padded_cty - top, padded_cty + bottom)
+    x_slice = slice(padded_ctx - left, padded_ctx + right)
+    padded_image[y_slice, x_slice, :] = image[y0:y1, x0:x1, :]
+    return padded_image

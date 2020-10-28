@@ -26,44 +26,47 @@ HIGHEST_BACKBONE_LVL = 5  # E.g., "conv5"-like level
 # FPN with ResNet
 # ---------------------------------------------------------------------------- #
 
-def fpn_ResNet50_conv5_body():
+def fpn_ResNet50_conv5_body(pretrained):
     return fpn(
-        torchResNet.ResNet50_conv5_body, fpn_level_info_ResNet50_conv5()
+        torchResNet.ResNet50_conv5_body, fpn_level_info_ResNet50_conv5(), pretrained
     )
 
 
-def fpn_ResNet50_conv5_P2only_body():
+def fpn_ResNet50_conv5_P2only_body(pretrained):
     return fpn(
         torchResNet.ResNet50_conv5_body,
         fpn_level_info_ResNet50_conv5(),
+        pretrained,
         P2only=True
     )
 
 
-def fpn_ResNet101_conv5_body():
+def fpn_ResNet101_conv5_body(pretrained):
     return fpn(
-        torchResNet.ResNet101_conv5_body, fpn_level_info_ResNet101_conv5()
+        torchResNet.ResNet101_conv5_body, fpn_level_info_ResNet101_conv5(), pretrained
     )
 
 
-def fpn_ResNet101_conv5_P2only_body():
+def fpn_ResNet101_conv5_P2only_body(pretrained):
     return fpn(
         torchResNet.ResNet101_conv5_body,
         fpn_level_info_ResNet101_conv5(),
+        pretrained,
         P2only=True
     )
 
 
-def fpn_ResNet152_conv5_body():
+def fpn_ResNet152_conv5_body(pretrained):
     return fpn(
-        torchResNet.ResNet152_conv5_body, fpn_level_info_ResNet152_conv5()
+        torchResNet.ResNet152_conv5_body, fpn_level_info_ResNet152_conv5(), pretrained
     )
 
 
-def fpn_ResNet152_conv5_P2only_body():
+def fpn_ResNet152_conv5_P2only_body(pretrained):
     return fpn(
         torchResNet.ResNet152_conv5_body,
         fpn_level_info_ResNet152_conv5(),
+        pretrained,
         P2only=True
     )
 
@@ -78,7 +81,7 @@ class fpn(nn.Module):
     similarly for fpn_level_info.dims: e.g [2048, 1024, 512, 256]
     similarly for spatial_scale: e.g [1/32, 1/16, 1/8, 1/4]
     """
-    def __init__(self, conv_body_func, fpn_level_info, P2only=False):
+    def __init__(self, conv_body_func, fpn_level_info, pretrained=True, P2only=False):
         super().__init__()
         self.fpn_level_info = fpn_level_info
         self.P2only = P2only
@@ -155,7 +158,7 @@ class fpn(nn.Module):
 
         # Deliberately add conv_body after _init_weights.
         # conv_body has its own _init_weights function
-        self.conv_body = conv_body_func()  # e.g resnet
+        self.conv_body = conv_body_func(pretrained)  # e.g resnet
 
     def _init_weights(self):
         def init_func(m):

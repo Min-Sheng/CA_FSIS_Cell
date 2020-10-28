@@ -494,7 +494,7 @@ def save_one_image(
 def vis_one_image(
         im, im_name, output_dir, boxes, segms=None, keypoints=None, thresh=0.9,
         kp_thresh=2, dpi=200, box_alpha=0.0, dataset=None, show_class=False,
-        ext='png', class_name=None, save=False, draw_bbox=False):
+        ext='png', class_name=None, save=False, draw_bbox=False, gray_masking=True):
     """Visual debugging of detections."""
     
     if save:
@@ -514,7 +514,8 @@ def vis_one_image(
         ax = plt.Axes(fig, [0., 0., 1., 1.])
         ax.axis('off')
         fig.add_axes(ax)
-        im = create_grayscale_image(im)
+        if gray_masking:
+            im = create_grayscale_image(im)
         ax.imshow(im)
         buffer = io.BytesIO()
         output_name = os.path.basename(im_name) + '.' + ext
@@ -553,7 +554,8 @@ def vis_one_image(
     ax = plt.Axes(fig, [0., 0., 1., 1.])
     ax.axis('off')
     fig.add_axes(ax)
-    im = create_grayscale_image(im, np.sum(valid_masks, axis=2)>0)
+    if gray_masking:
+        im = create_grayscale_image(im, np.sum(valid_masks, axis=2)>0)
     ax.imshow(im)
     buffer = io.BytesIO()
 
@@ -565,7 +567,6 @@ def vis_one_image(
         score = boxes[i, -1]
         if score < thresh:
             continue
-        print(dataset.classes[classes[i]], score)
         # show box (off by default, box_alpha=0.0)
         colorval = "#%02x%02x%02x" % (255, 255, 110)
         if draw_bbox:

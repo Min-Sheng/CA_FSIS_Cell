@@ -81,8 +81,12 @@ class Generalized_RCNN(nn.Module):
         self.orphans_in_detectron = None
 
         # Backbone for feature extraction
-        self.Conv_Body = get_func(cfg.MODEL.CONV_BODY)()
-
+        if cfg.LOAD_IMAGENET:
+            pretrained_backbone = True
+        else:
+            pretrained_backbone = False
+        self.Conv_Body = get_func(cfg.MODEL.CONV_BODY)(pretrained = pretrained_backbone)
+        
         # Matching Mechanism
         if cfg.CO_ATTEN:
             self.match_net = matching.match_block(self.Conv_Body.dim_out)
