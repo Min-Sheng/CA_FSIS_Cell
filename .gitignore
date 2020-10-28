@@ -4,6 +4,7 @@ lib/build
 *~
 
 *.sh
+!make.sh
 
 *.o
 *.so
