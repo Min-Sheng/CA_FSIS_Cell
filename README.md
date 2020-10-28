@@ -139,5 +139,15 @@ Specify a different output directry, use `--output_dir {...}`. Defaults to `{the
 
 Architecture specific configuration files are put under [configs](configs/). The general configuration file is [lib/core/config.py](lib/core/config.py).
 
+## Web Demo
+
+To displays the interaction between our few-shot learning model and users, run
+
+```bash
+python py_server.py
+```
+
+and see [Min-Sheng/cfisDemo](https://github.com/Min-Sheng/cfisDemo) for more details.
+
 ## Acknowledgments
 Code is based on [roytseng-tw/Detectron.pytorch](https://github.com/roytseng-tw/Detectron.pytorch) and [timy90022/One-Shot-Object-Detection](https://github.com/timy90022/One-Shot-Object-Detection) and [oeway/pytorch-deform-conv](https://github.com/oeway/pytorch-deform-conv).
